@@ -19,7 +19,7 @@ No special configuration is needed.
 '''
 
 import sys, os, shutil
-from mercurial import util, osutil, dispatch, extensions
+from mercurial import util, osutil, dispatch, extensions, i18n
 import stat as _stat
 import mercurial.ui as _ui
 
@@ -76,6 +76,10 @@ def _tolocal(s):
 
 def utf8wrapper(orig, *args, **kargs):
     return fromunicode(orig(*tounicode(args), **kargs))
+
+def gettextwrapper(orig, message):
+    s = orig(message)
+    return s.decode(util._encoding).encode("utf-8")
 
 # The following 2 functions are copied from mercurial/pure/osutil.py.
 # The reasons is that the C version of listdir is not unicode safe, so
@@ -134,6 +138,8 @@ def uisetup(ui):
 
     extensions.wrapfunction(_ui.ui, "write", localize)
     extensions.wrapfunction(_ui.ui, "write_err", localize)
+    extensions.wrapfunction(i18n, "gettext", gettextwrapper)
+    extensions.wrapfunction(i18n, "_", gettextwrapper)
 
 def extsetup():
     if util._encoding.lower() == "utf-8":
