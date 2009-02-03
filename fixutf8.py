@@ -131,7 +131,7 @@ def uisetup(ui):
         lambda s: isinstance(s, str),
         "Converts to local codepage")
     def localize(orig, ui, *args):
-        if ui.isatty():
+        if ui.isatty() and not ui.buffers:
             orig(ui, *convert(args))
         else:
             orig(ui, *args)
