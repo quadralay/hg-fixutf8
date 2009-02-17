@@ -88,7 +88,7 @@ if sys.platform == "win32" and windll:
     prototype = WINFUNCTYPE(UINT)
     GetConsoleOutputCP = prototype(("GetConsoleOutputCP", windll.kernel32))
 
-    prototype = WINFUNCTYPE(DWORD)
+    prototype = WINFUNCTYPE(INT)
     GetLastError = prototype(("GetLastError", windll.kernel32))
 
     prototype = WINFUNCTYPE(HANDLE, DWORD)
@@ -113,9 +113,13 @@ if sys.platform == "win32" and windll:
                 buffer = s[start:end]
                 c = DWORD(0)
                 if not WriteFile(h, buffer, len(buffer), byref(c), 0):
-                    raise pywintypes.error(err, "WriteFile",
-                            win32api.FormatMessage(err))
-                start = start + c.value + 1
+                    err = GetLastError()
+                    if err < 0:
+                        raise pywintypes.error(err, "WriteFile",
+                                win32api.FormatMessage(err))
+                    start = start + c.value + 1
+                else:
+                    start = start + len(buffer)
         finally:
             SetConsoleOutputCP(oldcp)
 
