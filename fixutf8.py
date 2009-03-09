@@ -45,98 +45,32 @@ No special configuration is needed.
 
 import sys, os, shutil
 
+from mercurial import demandimport
+demandimport.ignore.extend(["win32helper", "osutil"])
+
+try:
+    import win32helper
+    import osutil as pureosutil
+except ImportError:
+    sys.path.append(os.path.dirname(__file__))
+    import win32helper
+    import osutil as pureosutil
+
 stdout = sys.stdout
 
 from mercurial import util, osutil, dispatch, extensions, i18n
-import stat as _stat
 import mercurial.ui as _ui
 
-try:
-    from ctypes import *
-except:
-    pass
 
 def test():
-    print win32getargs()
+    print win32helper.getargs()
     print sys.argv
 
     uargs = ['P:\\hg-fixutf8\\fixutf8.py', 'thi\xc5\x9b', 'i\xc5\x9b',
             '\xc4\x85', 't\xc4\x99\xc5\x9bt']
     for s in uargs:
-        rawprint(hStdOut, s + "\n")
+        win32helper.rawprint(win32helper.hStdOut, s + "\n")
 
-# Using ctypes we can call the unicode versions of win32 api calls that 
-# python does not call.
-if sys.platform == "win32" and windll:
-    LPCWSTR = c_wchar_p
-    LPCSTR = c_char_p
-    INT = c_int
-    UINT = c_uint
-    BOOL = INT
-    DWORD = UINT
-    HANDLE = c_void_p
-
-    prototype = WINFUNCTYPE(LPCWSTR)
-    GetCommandLine = prototype(("GetCommandLineW", windll.kernel32))
-
-    prototype = WINFUNCTYPE(POINTER(LPCWSTR), LPCWSTR, POINTER(INT))
-    CommandLineToArgv = prototype(("CommandLineToArgvW", windll.shell32))
-
-    prototype = WINFUNCTYPE(BOOL, UINT)
-    SetConsoleOutputCP = prototype(("SetConsoleOutputCP", windll.kernel32))
-
-    prototype = WINFUNCTYPE(UINT)
-    GetConsoleOutputCP = prototype(("GetConsoleOutputCP", windll.kernel32))
-
-    prototype = WINFUNCTYPE(INT)
-    GetLastError = prototype(("GetLastError", windll.kernel32))
-
-    prototype = WINFUNCTYPE(HANDLE, DWORD)
-    GetStdHandle = prototype(("GetStdHandle", windll.kernel32))
-
-    prototype = WINFUNCTYPE(BOOL, HANDLE, LPCSTR, DWORD,
-            POINTER(DWORD), DWORD)
-    WriteFile = prototype(("WriteFile", windll.kernel32))
-
-    hStdOut = GetStdHandle(0xFFFFfff5)
-    hStdErr = GetStdHandle(0xFFFFfff4)
-
-    def rawprint(h, s):
-        try:
-            oldcp = GetConsoleOutputCP()
-            SetConsoleOutputCP(65001)
-            limit = 0x4000
-            l = len(s)
-            start = 0
-            while start < l:
-                end = start + limit
-                buffer = s[start:end]
-                c = DWORD(0)
-                if not WriteFile(h, buffer, len(buffer), byref(c), 0):
-                    err = GetLastError()
-                    if err < 0:
-                        raise pywintypes.error(err, "WriteFile",
-                                win32api.FormatMessage(err))
-                    start = start + c.value + 1
-                else:
-                    start = start + len(buffer)
-        finally:
-            SetConsoleOutputCP(oldcp)
-
-    def win32getargs():
-        '''
-        win32getargs() -> [args]
-
-        Returns an array of utf8 encoded arguments passed on the command line.
-        '''
-        c = INT(0)
-        pargv = CommandLineToArgv(GetCommandLine(), byref(c))
-        return [fromunicode(pargv[i]) for i in xrange(1, c.value)]
-else:
-    rawprint = False
-    win32getargs = False
-    hStdOut = 0
-    hStdErr = 0
 
 def mapconvert(convert, canconvert, doc):
     '''
@@ -171,119 +105,44 @@ tounicode = mapconvert(
     "Convert a UTF-8 byte string to Unicode")
 
 fromunicode = mapconvert(
-    lambda s: makesafe(s.encode('utf-8')),
+    lambda s: s.encode('utf-8'),
     lambda s: isinstance(s, unicode),
     "Convert a Unicode string to a UTF-8 byte string")
 
-fromlocalresults = []
-def safefromlocal(orig, s):
-    # don't double decode
-    if s in fromlocalresults:
-        return s
-    r = orig(s)
-    fromlocalresults.append(r)
-    return r
-
-def makesafe(s):
-    fromlocalresults.append(s)
-    return s
-
-oldtolocal = util.tolocal
-def _tolocal(s):
-    return s
+win32helper.fromunicode = fromunicode
 
 def utf8wrapper(orig, *args, **kargs):
     return fromunicode(orig(*tounicode(args), **kargs))
 
-def gettextwrapper(orig, message):
-    s = orig(message)
-    return s.decode(util._encoding).encode("utf-8")
-
-# The following 2 functions are copied from mercurial/pure/osutil.py.
-# The reasons is that the C version of listdir is not unicode safe, so
-# we have to use the pure python version. If speed ends up being a
-# problem, a unicode safe version of the C module can be written.
-def _mode_to_kind(mode):
-    if _stat.S_ISREG(mode): return _stat.S_IFREG
-    if _stat.S_ISDIR(mode): return _stat.S_IFDIR
-    if _stat.S_ISLNK(mode): return _stat.S_IFLNK
-    if _stat.S_ISBLK(mode): return _stat.S_IFBLK
-    if _stat.S_ISCHR(mode): return _stat.S_IFCHR
-    if _stat.S_ISFIFO(mode): return _stat.S_IFIFO
-    if _stat.S_ISSOCK(mode): return _stat.S_IFSOCK
-    return mode
-
-def listdir(path, stat=False, skip=None):
-    '''listdir(path, stat=False) -> list_of_tuples
-
-    Return a sorted list containing information about the entries
-    in the directory.
-
-    If stat is True, each element is a 3-tuple:
-
-      (name, type, stat object)
-
-    Otherwise, each element is a 2-tuple:
-
-      (name, type)
-    '''
-    result = []
-    prefix = path
-    if not prefix.endswith(os.sep):
-        prefix += os.sep
-    names = os.listdir(path)
-    names.sort()
-    for fn in names:
-        st = os.lstat(prefix + fn)
-        if fn == skip and _stat.S_ISDIR(st.st_mode):
-            return []
-        if stat:
-            result.append((fn, _mode_to_kind(st.st_mode), st))
-        else:
-            result.append((fn, _mode_to_kind(st.st_mode)))
-    return result
 
 def uisetup(ui):
     if sys.platform != 'win32':
         return
 
-    convert =  mapconvert(
-        lambda s: oldtolocal(s),
-        lambda s: isinstance(s, str),
-        "Converts to local codepage")
+    util._encoding = "utf-8"
+
     def localize(h):
         def f(orig, ui, *args):
             if not ui.buffers:
-                if rawprint:
-                    rawprint(h, ''.join(args))
-                else:
-                    orig(ui, *convert(args))
+                win32helper.rawprint(h, ''.join(args))
             else:
                 orig(ui, *args)
         return f
 
-    extensions.wrapfunction(_ui.ui, "write", localize(hStdOut))
-    extensions.wrapfunction(_ui.ui, "write_err", localize(hStdErr))
-    extensions.wrapfunction(i18n, "gettext", gettextwrapper)
-    extensions.wrapfunction(i18n, "_", gettextwrapper)
+    extensions.wrapfunction(_ui.ui, "write", localize(win32helper.hStdOut))
+    extensions.wrapfunction(_ui.ui, "write_err", localize(win32helper.hStdErr))
 
 def extsetup():
     if sys.platform != 'win32':
         return
 
     oldlistdir = osutil.listdir
-    osutil.listdir = listdir # force pure listdir
-    extensions.wrapfunction(osutil, "listdir", utf8wrapper)
 
-    extensions.wrapfunction(util, "fromlocal", safefromlocal)
-    util.tolocal = _tolocal
+    osutil.listdir = pureosutil.listdir # force pure listdir
+    extensions.wrapfunction(osutil, "listdir", utf8wrapper)
     
-    if win32getargs:
-        extensions.wrapfunction(dispatch, "_parse",
-                lambda orig, ui, args: orig(ui, win32getargs()[-len(args):]))
-    else:
-        extensions.wrapfunction(dispatch, "_parse",
-                lambda orig, ui, args: orig(ui, map(util.fromlocal, args)))
+    extensions.wrapfunction(dispatch, "_parse",
+            lambda orig, ui, args: orig(ui, win32helper.getargs()[-len(args):]))
 
     class posixfile_utf8(file):
         def __init__(self, name, mode='rb'):
@@ -322,14 +181,15 @@ def extsetup():
     def wrapnames(mod, *names):
         for name in names:
             if hasattr(mod, name):
-                newfunc = extensions.wrapfunction(mod, name, utf8wrapper)
+                extensions.wrapfunction(mod, name, utf8wrapper)
 
     wrapnames(os.path, 'join', 'split', 'splitext', 'splitunc',
             'normpath', 'normcase', 'islink', 'dirname', 'isdir',
-            'exists')
+            'exists', 'realpath')
     wrapnames(os, 'makedirs', 'lstat', 'unlink', 'chmod', 'stat',
-            'mkdir', 'rename', 'removedirs')
+            'mkdir', 'rename', 'removedirs', 'setcwd')
     wrapnames(shutil, 'copyfile', 'copymode')
+    extensions.wrapfunction(os, 'getcwd', win32helper.getcwdwrapper)
 
 
 if __name__ == "__main__":
