@@ -100,19 +100,23 @@ def mapconvert(convert, canconvert, doc):
     return _convert
 
 tounicode = mapconvert(
-    lambda s: s.decode('utf-8'), 
+    lambda s: s.decode('utf-8', 'ignore'), 
     lambda s: isinstance(s, str),  
     "Convert a UTF-8 byte string to Unicode")
 
 fromunicode = mapconvert(
-    lambda s: s.encode('utf-8'),
+    lambda s: s.encode('utf-8', 'ignore'),
     lambda s: isinstance(s, unicode),
     "Convert a Unicode string to a UTF-8 byte string")
 
 win32helper.fromunicode = fromunicode
 
 def utf8wrapper(orig, *args, **kargs):
-    return fromunicode(orig(*tounicode(args), **kargs))
+    try:
+        return fromunicode(orig(*tounicode(args), **kargs))
+    except UnicodeDecodeError:
+        print "While calling %s" % orig.__name__
+        raise
 
 
 def uisetup(ui):
@@ -183,9 +187,8 @@ def extsetup():
             if hasattr(mod, name):
                 extensions.wrapfunction(mod, name, utf8wrapper)
 
-    wrapnames(os.path, 'join', 'split', 'splitext', 'splitunc',
-            'normpath', 'normcase', 'islink', 'dirname', 'isdir',
-            'exists', 'realpath')
+    wrapnames(os.path, 'normpath', 'normcase', 'islink', 'dirname',
+            'isdir', 'isfile', 'exists')
     wrapnames(os, 'makedirs', 'lstat', 'unlink', 'chmod', 'stat',
             'mkdir', 'rename', 'removedirs', 'setcwd')
     wrapnames(shutil, 'copyfile', 'copymode')
