@@ -58,7 +58,11 @@ if sys.platform == "win32" and windll:
     def rawprint(h, s):
         try:
             oldcp = GetConsoleOutputCP()
-            SetConsoleOutputCP(65001)
+            try:
+                if oldcp != 65001:
+                    s = s.decode('utf-8').encode('cp%d' % oldcp)
+            except UnicodeError:
+                SetConsoleOutputCP(65001)
             limit = 0x4000
             l = len(s)
             start = 0
@@ -75,7 +79,8 @@ if sys.platform == "win32" and windll:
                 else:
                     start = start + len(buffer)
         finally:
-            SetConsoleOutputCP(oldcp)
+            if oldcp != GetConsoleOutputCP():
+                SetConsoleOutputCP(oldcp)
 
     def getargs():
         '''
