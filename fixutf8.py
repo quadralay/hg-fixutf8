@@ -122,6 +122,8 @@ def uisetup(ui):
     if sys.platform != 'win32':
         return
 
+    win32helper.uisetup(ui)
+
     try:
         from mercurial import encoding
         encoding.encoding = 'utf8'

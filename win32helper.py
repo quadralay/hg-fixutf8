@@ -5,6 +5,9 @@
 import sys
 from ctypes import *
 
+usecpmap = True
+mapcp = None
+
 # Using ctypes we can call the unicode versions of win32 api calls that 
 # python does not call.
 if sys.platform == "win32" and windll:
@@ -55,29 +58,39 @@ if sys.platform == "win32" and windll:
                         win32api.FormatMessage(err))
         return fromunicode(p.value)
 
+    def InternalWriteFile(h, s):
+        limit = 0x4000
+        l = len(s)
+        start = 0
+        while start < l:
+            end = start + limit
+            buffer = s[start:end]
+            c = DWORD(0)
+            if not WriteFile(h, buffer, len(buffer), byref(c), 0):
+                err = GetLastError()
+                if err < 0:
+                    raise pywintypes.error(err, "WriteFile",
+                            win32api.FormatMessage(err))
+                start = start + c.value + 1
+            else:
+                start = start + len(buffer)
+
     def rawprint(h, s):
         try:
             changedcp, oldcp = False, GetConsoleOutputCP()
+            u = s.decode('utf-8')
             try:
                 if oldcp != 65001:
-                    s = s.decode('utf-8').encode('cp%d' % oldcp)
+                    s = u.encode('cp%d' % oldcp)
             except UnicodeError:
-                changedcp = SetConsoleOutputCP(65001)
-            limit = 0x4000
-            l = len(s)
-            start = 0
-            while start < l:
-                end = start + limit
-                buffer = s[start:end]
-                c = DWORD(0)
-                if not WriteFile(h, buffer, len(buffer), byref(c), 0):
-                    err = GetLastError()
-                    if err < 0:
-                        raise pywintypes.error(err, "WriteFile",
-                                win32api.FormatMessage(err))
-                    start = start + c.value + 1
+                if usecpmap:
+                    cpname, newcp = mapcp(u)
+                    s = u.encode(cpname)
                 else:
-                    start = start + len(buffer)
+                    newcp = 65001
+                changedcp = SetConsoleOutputCP(newcp)
+
+            InternalWriteFile(h, s)
         finally:
             if changedcp:
                 SetConsoleOutputCP(oldcp)
@@ -97,3 +110,9 @@ else:
     hStdOut = 0
     hStdErr = 0
 
+def uisetup(ui):
+    global usecpmap, mapcp
+    usecpmap = ui.config('fixutf8', 'usecpmap', usecpmap)
+    if usecpmap:
+        import cpmap
+        mapcp = cpmap.reduce
