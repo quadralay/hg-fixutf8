@@ -61,7 +61,6 @@ stdout = sys.stdout
 from mercurial import util, osutil, dispatch, extensions, i18n
 import mercurial.ui as _ui
 
-
 def test():
     print win32helper.getargs()
     print sys.argv
@@ -123,11 +122,19 @@ def uisetup(ui):
     if sys.platform != 'win32':
         return
 
-    util._encoding = "utf-8"
+    try:
+        from mercurial import encoding
+        encoding.encoding = 'utf8'
+    except ImportError:
+        util._encoding = "utf-8"
 
     def localize(h):
+        if hasattr(ui, '_buffers'):
+            getbuffers = lambda ui: ui._buffers
+        else:
+            getbuffers = lambda ui: ui.buffers
         def f(orig, ui, *args):
-            if not ui.buffers:
+            if not getbuffers(ui):
                 win32helper.rawprint(h, ''.join(args))
             else:
                 orig(ui, *args)
