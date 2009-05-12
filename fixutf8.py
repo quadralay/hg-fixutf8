@@ -197,9 +197,9 @@ def extsetup():
                 extensions.wrapfunction(mod, name, utf8wrapper)
 
     wrapnames(os.path, 'normpath', 'normcase', 'islink', 'dirname',
-            'isdir', 'isfile', 'exists')
+            'isdir', 'isfile', 'exists', 'abspath')
     wrapnames(os, 'makedirs', 'lstat', 'unlink', 'chmod', 'stat',
-            'mkdir', 'rename', 'removedirs', 'setcwd')
+            'mkdir', 'rename', 'removedirs', 'setcwd', 'open')
     wrapnames(shutil, 'copyfile', 'copymode')
     extensions.wrapfunction(os, 'getcwd', win32helper.getcwdwrapper)
 
