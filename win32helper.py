@@ -85,7 +85,9 @@ if sys.platform == "win32" and windll:
             except UnicodeError:
                 if usecpmap:
                     cpname, newcp = mapcp(u)
-                    s = u.encode(cpname)
+                    # s is already in utf8
+                    if newcp != 65001:
+                        s = u.encode(cpname)
                 else:
                     newcp = 65001
                 changedcp = SetConsoleOutputCP(newcp)
