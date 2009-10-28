@@ -153,9 +153,13 @@ def extsetup():
 
     osutil.listdir = pureosutil.listdir # force pure listdir
     extensions.wrapfunction(osutil, "listdir", utf8wrapper)
-    
-    extensions.wrapfunction(dispatch, "_parse",
-            lambda orig, ui, args: orig(ui, win32helper.getargs()[-len(args):]))
+
+    # only get the real command line args if we are passed a real ui object
+    def disp_parse(orig, ui, args):
+        if type(ui) == _ui.ui:
+            args = win32helper.getargs()[-len(args):]
+	return orig(ui, args)
+    extensions.wrapfunction(dispatch, "_parse", disp_parse)
 
     class posixfile_utf8(file):
         def __init__(self, name, mode='rb'):
