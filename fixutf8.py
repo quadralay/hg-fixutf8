@@ -135,11 +135,11 @@ def uisetup(ui):
             getbuffers = lambda ui: ui._buffers
         else:
             getbuffers = lambda ui: ui.buffers
-        def f(orig, ui, *args):
+        def f(orig, ui, *args, **kwds):
             if not getbuffers(ui):
                 win32helper.rawprint(h, ''.join(args))
             else:
-                orig(ui, *args)
+                orig(ui, *args, **kwds)
         return f
 
     extensions.wrapfunction(_ui.ui, "write", localize(win32helper.hStdOut))
