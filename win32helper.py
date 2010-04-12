@@ -75,6 +75,9 @@ if sys.platform == "win32" and windll:
             else:
                 start = start + len(buffer)
 
+    def consolehascp():
+        return 0 != GetConsoleOutputCP()
+
     def rawprint(h, s):
         try:
             changedcp, oldcp = False, GetConsoleOutputCP()

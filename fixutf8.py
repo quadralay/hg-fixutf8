@@ -119,7 +119,7 @@ def utf8wrapper(orig, *args, **kargs):
 
 
 def uisetup(ui):
-    if sys.platform != 'win32':
+    if sys.platform != 'win32' or not win32helper.consolehascp():
         return
 
     win32helper.uisetup(ui)
