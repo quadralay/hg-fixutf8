@@ -29,7 +29,7 @@ def listdir(path, stat=False, skip=None):
     prefix = path
     if not prefix.endswith(os.sep):
         prefix += os.sep
-    names = os.listdir(path)
+    names = [name.decode('utf-8') for name in os.listdir(path)]
     names.sort()
     for fn in names:
         st = os.lstat(prefix + fn)
