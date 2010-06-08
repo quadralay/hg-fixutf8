@@ -203,10 +203,11 @@ def extsetup():
     wrapnames(os.path, 'normpath', 'normcase', 'islink', 'dirname',
             'isdir', 'isfile', 'exists', 'abspath')
     wrapnames(os, 'makedirs', 'lstat', 'unlink', 'chmod', 'stat',
-            'mkdir', 'rename', 'removedirs', 'setcwd', 'open', 'listdir')
+            'mkdir', 'rename', 'removedirs', 'setcwd', 'open',
+            'listdir', 'chdir')
     wrapnames(shutil, 'copyfile', 'copymode', 'copystat')
     extensions.wrapfunction(os, 'getcwd', win32helper.getcwdwrapper)
-
+    
 
 if __name__ == "__main__":
     test()
