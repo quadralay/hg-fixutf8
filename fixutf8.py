@@ -207,6 +207,7 @@ def extsetup():
             'listdir', 'chdir')
     wrapnames(shutil, 'copyfile', 'copymode', 'copystat')
     extensions.wrapfunction(os, 'getcwd', win32helper.getcwdwrapper)
+    wrapnames(sys.modules['__builtin__'], 'open')
     
 
 if __name__ == "__main__":
