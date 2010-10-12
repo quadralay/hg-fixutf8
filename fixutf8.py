@@ -201,7 +201,7 @@ def extsetup():
                 extensions.wrapfunction(mod, name, utf8wrapper)
 
     wrapnames(os.path, 'normpath', 'normcase', 'islink', 'dirname',
-            'isdir', 'isfile', 'exists', 'abspath')
+            'isdir', 'isfile', 'exists', 'abspath', 'realpath')
     wrapnames(os, 'makedirs', 'lstat', 'unlink', 'chmod', 'stat',
             'mkdir', 'rename', 'removedirs', 'setcwd', 'open',
             'listdir', 'chdir')
