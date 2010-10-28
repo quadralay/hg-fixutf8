@@ -66,7 +66,7 @@ def test():
     print sys.argv
 
     uargs = ['P:\\hg-fixutf8\\fixutf8.py', 'thi\xc5\x9b', 'i\xc5\x9b',
-            '\xc4\x85', 't\xc4\x99\xc5\x9bt']
+             '\xc4\x85', 't\xc4\x99\xc5\x9bt']
     for s in uargs:
         win32helper.rawprint(win32helper.hStdOut, s + "\n")
 
@@ -158,7 +158,7 @@ def extsetup():
     def disp_parse(orig, ui, args):
         if type(ui) == _ui.ui:
             args = win32helper.getargs()[-len(args):]
-	return orig(ui, args)
+        return orig(ui, args)
     extensions.wrapfunction(dispatch, "_parse", disp_parse)
 
     class posixfile_utf8(file):
@@ -177,7 +177,7 @@ def extsetup():
             def __init__(self, name, mode, createmode):
                 self.__name = name
                 self.temp = util.mktempcopy(name, emptyok=('w' in mode),
-                                       createmode=createmode)
+                                            createmode=createmode)
                 posixfile_utf8.__init__(self, self.temp, mode)
 
             def rename(self):
@@ -201,14 +201,14 @@ def extsetup():
                 extensions.wrapfunction(mod, name, utf8wrapper)
 
     wrapnames(os.path, 'normpath', 'normcase', 'islink', 'dirname',
-            'isdir', 'isfile', 'exists', 'abspath', 'realpath')
+              'isdir', 'isfile', 'exists', 'abspath', 'realpath')
     wrapnames(os, 'makedirs', 'lstat', 'unlink', 'chmod', 'stat',
-            'mkdir', 'rename', 'removedirs', 'setcwd', 'open',
-            'listdir', 'chdir')
+              'mkdir', 'rename', 'removedirs', 'setcwd', 'open',
+              'listdir', 'chdir', 'remove')
     wrapnames(shutil, 'copyfile', 'copymode', 'copystat')
     extensions.wrapfunction(os, 'getcwd', win32helper.getcwdwrapper)
     wrapnames(sys.modules['__builtin__'], 'open')
-    
+
 
 if __name__ == "__main__":
     test()
