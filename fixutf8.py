@@ -174,7 +174,7 @@ def extsetup():
             file.  When rename is called, the copy is renamed to the original
             name, making the changes visible.
             """
-            def __init__(self, name, mode, createmode):
+            def __init__(self, name, mode, createmode=None):
                 self.__name = name
                 self.temp = util.mktempcopy(name, emptyok=('w' in mode),
                                             createmode=createmode)
