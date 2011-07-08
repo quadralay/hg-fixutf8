@@ -81,7 +81,7 @@ if sys.platform == "win32" and windll:
     def rawprint(h, s):
         try:
             changedcp, oldcp = False, GetConsoleOutputCP()
-            u = s.decode('utf-8')
+            u = s ;#.decode('utf-8') - since TortoiseHG 1.8.4 it is utf8 already. This was not true for 1.8.2
             try:
                 if oldcp != 65001:
                     s = u.encode('cp%d' % oldcp)
