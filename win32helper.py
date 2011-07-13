@@ -79,26 +79,30 @@ if sys.platform == "win32" and windll:
         return 0 != GetConsoleOutputCP()
 
     def rawprint(h, s):
-        try:
-            changedcp, oldcp = False, GetConsoleOutputCP()
-            u = s ;#.decode('utf-8') - since TortoiseHG 1.8.4 it is utf8 already. This was not true for 1.8.2
-            try:
-                if oldcp != 65001:
-                    s = u.encode('cp%d' % oldcp)
-            except UnicodeError:
-                if usecpmap:
-                    cpname, newcp = mapcp(u)
-                    # s is already in utf8
-                    if newcp != 65001:
-                        s = u.encode(cpname)
-                else:
-                    newcp = 65001
-                changedcp = SetConsoleOutputCP(newcp)
+        #try:
+            #changedcp, oldcp = False, GetConsoleOutputCP()
+            #u = s ;#.decode('utf-8') - since TortoiseHG 1.8.4 it is utf8 already. This was not true for 1.8.2
+            #try:
+            #    if oldcp != 65001:
+            #        s = u.encode('cp%d' % oldcp)
+            #except UnicodeError:
+            #    if usecpmap:
+            #        cpname, newcp = mapcp(u)
+            #        # s is already in utf8
+            #        if newcp != 65001:
+			#			try:
+			#				s = u.encode(cpname)
+			#			except UnicodeError:
+			#				s = u.decode('utf-8','ignore').encode(cpname,'ignore')
+			#				sys.stderr.write('failed to convert: ' + s + '\n');
+            #    else:
+            #        newcp = 65001
+            #    changedcp = SetConsoleOutputCP(newcp)
 
-            InternalWriteFile(h, s)
-        finally:
-            if changedcp:
-                SetConsoleOutputCP(oldcp)
+			InternalWriteFile(h, s)
+        #finally:
+        #    if changedcp:
+        #        SetConsoleOutputCP(oldcp)
 
     def getargs():
         '''
