@@ -180,7 +180,7 @@ def extsetup():
                                             createmode=createmode)
                 posixfile_utf8.__init__(self, self.temp, mode)
 
-            def rename(self):
+            def close(self):
                 if not self.closed:
                     posixfile_utf8.close(self)
                     util.rename(self.temp, util.localpath(self.__name))
