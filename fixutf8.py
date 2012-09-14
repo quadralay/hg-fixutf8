@@ -58,7 +58,7 @@ except ImportError:
 
 stdout = sys.stdout
 
-from mercurial import util, osutil, dispatch, extensions, i18n
+from mercurial import windows, util, osutil, dispatch, extensions, i18n
 import mercurial.ui as _ui
 
 def test():
@@ -153,6 +153,10 @@ def extsetup():
 
     osutil.listdir = pureosutil.listdir # force pure listdir
     extensions.wrapfunction(osutil, "listdir", utf8wrapper)
+
+    def normcase_utf8(path):
+        return fromunicode(tounicode(path).upper())
+    windows.normcase = normcase_utf8
 
     # only get the real command line args if we are passed a real ui object
     def disp_parse(orig, ui, args):
