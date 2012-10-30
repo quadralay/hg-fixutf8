@@ -157,6 +157,7 @@ def extsetup():
     def normcase_utf8(path):
         return fromunicode(tounicode(path).upper())
     windows.normcase = normcase_utf8
+    util.normcase = normcase_utf8
 
     # only get the real command line args if we are passed a real ui object
     def disp_parse(orig, ui, args):
