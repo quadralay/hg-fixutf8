@@ -99,8 +99,8 @@ def mapconvert(convert, canconvert, doc):
     return _convert
 
 tounicode = mapconvert(
-    lambda s: s.decode('utf-8', 'ignore'), 
-    lambda s: isinstance(s, str),  
+    lambda s: s.decode('utf-8', 'ignore'),
+    lambda s: isinstance(s, str),
     "Convert a UTF-8 byte string to Unicode")
 
 fromunicode = mapconvert(
@@ -179,16 +179,28 @@ def extsetup():
             file.  When rename is called, the copy is renamed to the original
             name, making the changes visible.
             """
-            def __init__(self, name, mode, createmode=None):
+            def __init__(self, name, mode='w+b', createmode=None):
                 self.__name = name
                 self.temp = util.mktempcopy(name, emptyok=('w' in mode),
                                             createmode=createmode)
                 posixfile_utf8.__init__(self, self.temp, mode)
 
+            # https://bitbucket.org/stefanrusek/hg-fixutf8/issue/29/incompatible-with-mercurial-20
+            def rename(self):
+                util.rename(self._tempname, util.localpath(self.__name))
+
             def close(self):
                 if not self.closed:
                     posixfile_utf8.close(self)
                     util.rename(self.temp, util.localpath(self.__name))
+
+            def discard(self):
+                if not self.closed:
+                    try:
+                        os.unlink(self._tempname)
+                    except OSError:
+                        pass
+                    posixfile_utf8.close(self)
 
             def __del__(self):
                 if not self.closed:
