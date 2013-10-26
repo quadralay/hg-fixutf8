@@ -116,6 +116,9 @@ def utf8wrapper(orig, *args, **kargs):
     except UnicodeDecodeError:
         print "While calling %s" % orig.__name__
         raise
+##    except Exception as e:
+##        #print "*****utf8wrapper", orig, tounicode(args), e
+##        return orig(*args, **kargs)
 
 
 def uisetup(ui):
@@ -181,18 +184,17 @@ def extsetup():
             """
             def __init__(self, name, mode='w+b', createmode=None):
                 self.__name = name
-                self.temp = util.mktempcopy(name, emptyok=('w' in mode),
+                self._tempname = util.mktempcopy(name, emptyok=('w' in mode),
                                             createmode=createmode)
-                posixfile_utf8.__init__(self, self.temp, mode)
+                posixfile_utf8.__init__(self, self._tempname, mode)
 
             # https://bitbucket.org/stefanrusek/hg-fixutf8/issue/29/incompatible-with-mercurial-20
-            def rename(self):
-                util.rename(self._tempname, util.localpath(self.__name))
 
             def close(self):
                 if not self.closed:
                     posixfile_utf8.close(self)
-                    util.rename(self.temp, util.localpath(self.__name))
+                    util.rename(self._tempname, util.localpath(self.__name))
+            rename = close
 
             def discard(self):
                 if not self.closed:
@@ -205,7 +207,7 @@ def extsetup():
             def __del__(self):
                 if not self.closed:
                     try:
-                        os.unlink(self.temp)
+                        os.unlink(self._tempname)
                     except: pass
                     posixfile_utf8.close(self)
 
