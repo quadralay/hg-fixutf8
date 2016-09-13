@@ -116,9 +116,6 @@ def utf8wrapper(orig, *args, **kargs):
     except UnicodeDecodeError:
         print "While calling %s" % orig.__name__
         raise
-##    except Exception as e:
-##        #print "*****utf8wrapper", orig, tounicode(args), e
-##        return orig(*args, **kargs)
 
 
 def uisetup(ui):
@@ -175,41 +172,68 @@ def extsetup():
     util.posixfile = posixfile_utf8
 
     if util.atomictempfile:
-        class atomictempfile_utf8(posixfile_utf8):
-            """file-like object that atomically updates a file
+        class atomictempfile_utf8(object):
+            '''writable file object that atomically updates a file
 
-            All writes will be redirected to a temporary copy of the original
-            file.  When rename is called, the copy is renamed to the original
-            name, making the changes visible.
-            """
-            def __init__(self, name, mode='w+b', createmode=None):
-                self.__name = name
+            All writes will go to a temporary copy of the original file. Call
+            close() when you are done writing, and atomictempfile will rename
+            the temporary copy to the original name, making the changes
+            visible. If the object is destroyed without being closed, all your
+            writes are discarded.
+
+            checkambig argument of constructor is used with filestat, and is
+            useful only if target file is guarded by any lock (e.g. repo.lock
+            or repo.wlock).
+            '''
+            def __init__(self, name, mode='w+b', createmode=None, checkambig=False):
+                self.__name = name      # permanent name
                 self._tempname = util.mktempcopy(name, emptyok=('w' in mode),
                                             createmode=createmode)
-                posixfile_utf8.__init__(self, self._tempname, mode)
+                self._fp = posixfile_utf8(self._tempname, mode)
+                self._checkambig = checkambig
 
-            # https://bitbucket.org/stefanrusek/hg-fixutf8/issue/29/incompatible-with-mercurial-20
+                # delegated methods
+                self.read = self._fp.read
+                self.write = self._fp.write
+                self.seek = self._fp.seek
+                self.tell = self._fp.tell
+                self.fileno = self._fp.fileno
 
             def close(self):
-                if not self.closed:
-                    posixfile_utf8.close(self)
-                    util.rename(self._tempname, util.localpath(self.__name))
-            rename = close
+                if not self._fp.closed:
+                    self._fp.close()
+                    filename = util.localpath(self.__name)
+                    oldstat = self._checkambig and util.filestat(filename)
+                    if oldstat and oldstat.stat:
+                        util.rename(self._tempname, filename)
+                        newstat = util.filestat(filename)
+                        if newstat.isambig(oldstat):
+                            # stat of changed file is ambiguous to original one
+                            advanced = (oldstat.stat.st_mtime + 1) & 0x7fffffff
+                            os.utime(filename, (advanced, advanced))
+                    else:
+                        util.rename(self._tempname, filename)
 
             def discard(self):
-                if not self.closed:
+                if not self._fp.closed:
                     try:
                         os.unlink(self._tempname)
                     except OSError:
                         pass
-                    posixfile_utf8.close(self)
+                    self._fp.close()
 
             def __del__(self):
-                if not self.closed:
-                    try:
-                        os.unlink(self._tempname)
-                    except: pass
-                    posixfile_utf8.close(self)
+                if util.safehasattr(self, '_fp'): # constructor actually did something
+                    self.discard()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exctype, excvalue, traceback):
+                if exctype is not None:
+                    self.discard()
+                else:
+                    self.close()
 
         util.atomictempfile = atomictempfile_utf8
 
