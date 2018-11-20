@@ -16,6 +16,9 @@ This extension is still in beta, use it at your own risk.
 Overview
 --------
 
+Note:
+Used by Quadralay to access Mercurial repositories created by CloudDrafts and then accessed directly by a Jenkins server running on Windows. Since the use of a Jenkins server is being phased out, so to may be the dependency on this repository.
+
 This extension corrects filename encoding problems on Windows.
 
 Windows internally stores all command line arguments and filenames in Unicode UTF-16 (16-bit character strings), and for backward compatibility with Windows 3.x, provides functions to retrieve them in non-Unicode 8-bit character strings. Python 2.x and Mercurial call the non-Unicode functions. This causes Mercurial to misbehave when used with filenames that contain Unicode characters. This extension resolves this issue, by making sure that the Unicode functions are called. Since Mercurial expects 8-bit character strings, the extension converts the strings to UTF-8 before returning them to Mercurial.
